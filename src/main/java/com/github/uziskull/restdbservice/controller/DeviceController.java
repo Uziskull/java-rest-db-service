@@ -19,7 +19,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import java.io.IOException;
 import java.util.UUID;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
@@ -98,7 +97,7 @@ public class DeviceController {
     }
 
     @ExceptionHandler
-    public ResponseEntity<ErrorResponse> handleInputBodyException(HttpMessageNotReadableException e) throws IOException {
+    public ResponseEntity<ErrorResponse> handleInputBodyException(HttpMessageNotReadableException e) {
         log.error("Error performing request:", e);
         return ResponseEntity.badRequest()
                 .body(ErrorResponse.builder()
