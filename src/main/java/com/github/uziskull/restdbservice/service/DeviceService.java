@@ -1,12 +1,17 @@
 package com.github.uziskull.restdbservice.service;
 
-import com.github.uziskull.restdbservice.data.dao.DeviceDAO;
-import com.github.uziskull.restdbservice.data.dto.DeviceRequest;
-import com.github.uziskull.restdbservice.data.dto.DeviceResponse;
+import com.github.uziskull.restdbservice.model.dao.DeviceDAO;
+import com.github.uziskull.restdbservice.model.dto.DeviceRequest;
+import com.github.uziskull.restdbservice.model.dto.DeviceResponse;
+import com.github.uziskull.restdbservice.model.exception.DeviceNotFoundException;
+import com.github.uziskull.restdbservice.model.exception.DuplicateDeviceException;
 import com.github.uziskull.restdbservice.repository.DeviceRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -18,16 +23,21 @@ public class DeviceService {
 
     private DeviceRepository deviceRepository;
 
-    public DeviceResponse addDevice(DeviceRequest deviceRequest) {
+    public DeviceResponse addDevice(@NonNull DeviceRequest deviceRequest) {
         DeviceDAO deviceDAO = new DeviceDAO();
         deviceDAO.setName(deviceRequest.getName());
         deviceDAO.setBrand(deviceRequest.getBrand());
-        return DeviceResponse.fromDAO(deviceRepository.save(deviceDAO));
+        try {
+            return DeviceResponse.fromDAO(deviceRepository.save(deviceDAO));
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateDeviceException();
+        }
     }
 
-    public Optional<DeviceResponse> getDeviceByIdentifier(UUID id) {
+    public DeviceResponse getDeviceByIdentifier(@NonNull UUID id) {
         return deviceRepository.findById(id)
-                .map(DeviceResponse::fromDAO);
+                .map(DeviceResponse::fromDAO)
+                .orElseThrow(DeviceNotFoundException::new);
     }
 
     public Page<DeviceResponse> listAllDevices(Pageable pageable) {
@@ -35,31 +45,36 @@ public class DeviceService {
                 .map(DeviceResponse::fromDAO);
     }
 
-    public Optional<DeviceResponse> updateDevice(UUID deviceId, DeviceRequest deviceRequest) {
+    public DeviceResponse updateDevice(@NonNull UUID deviceId,
+                                                 @NonNull DeviceRequest deviceRequest) {
         Optional<DeviceDAO> foundDevice = deviceRepository.findById(deviceId);
-        if (foundDevice.isPresent()) {
-            DeviceDAO deviceDAO = foundDevice.get();
-            if (deviceRequest.getName() != null) {
-                deviceDAO.setName(deviceRequest.getName());
-            }
-            if (deviceRequest.getBrand() != null) {
-                deviceDAO.setBrand(deviceRequest.getBrand());
-            }
-            deviceRepository.save(deviceDAO);
-            return Optional.of(DeviceResponse.fromDAO(deviceDAO));
+        if (foundDevice.isEmpty()) {
+            throw new DeviceNotFoundException();
         }
-        return Optional.empty();
+        DeviceDAO deviceDAO = foundDevice.get();
+        if (deviceRequest.getName() != null) {
+            deviceDAO.setName(deviceRequest.getName());
+        }
+        if (deviceRequest.getBrand() != null) {
+            deviceDAO.setBrand(deviceRequest.getBrand());
+        }
+        try {
+            return DeviceResponse.fromDAO(deviceRepository.save(deviceDAO));
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateDeviceException();
+        }
     }
 
-    public boolean deleteDevice(UUID deviceId) {
-        return deviceRepository.removeById(deviceId) > 0;
+    public void deleteDevice(@NonNull UUID deviceId) {
+        try {
+            deviceRepository.deleteById(deviceId);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DeviceNotFoundException();
+        }
     }
 
-    public Page<DeviceResponse> searchDeviceByBrand(String brand, Pageable pageable) {
-        if (brand != null) {
-            return deviceRepository.findByBrand(brand, pageable)
-                    .map(DeviceResponse::fromDAO);
-        }
-        return Page.empty();
+    public Page<DeviceResponse> searchDeviceByBrand(@NonNull String brand, Pageable pageable) {
+        return deviceRepository.findByBrand(brand, pageable)
+                .map(DeviceResponse::fromDAO);
     }
 }
