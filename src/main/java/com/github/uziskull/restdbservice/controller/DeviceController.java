@@ -4,6 +4,7 @@ import com.github.uziskull.restdbservice.model.dto.DeviceRequest;
 import com.github.uziskull.restdbservice.model.dto.DeviceResponse;
 import com.github.uziskull.restdbservice.model.dto.ErrorResponse;
 import com.github.uziskull.restdbservice.model.exception.DeviceException;
+import com.github.uziskull.restdbservice.model.exception.DeviceNotFoundException;
 import com.github.uziskull.restdbservice.service.DeviceService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.PagedModel;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.lang.NonNull;
@@ -89,8 +91,9 @@ public class DeviceController {
     @ExceptionHandler
     public ResponseEntity<ErrorResponse> handleDeviceException(DeviceException e) {
         log.error("Error performing request:", e);
-        return ResponseEntity.badRequest()
-                .body(ErrorResponse.builder()
+        ResponseEntity.BodyBuilder errorBuilder = e instanceof DeviceNotFoundException ?
+                ResponseEntity.status(HttpStatus.NOT_FOUND) : ResponseEntity.badRequest();
+        return errorBuilder.body(ErrorResponse.builder()
                         .message(e.getClass().getSimpleName())
                         .description(e.getMessage())
                         .build());

@@ -5,7 +5,9 @@ import com.github.uziskull.restdbservice.model.dto.DeviceRequest;
 import com.github.uziskull.restdbservice.model.dto.DeviceResponse;
 import com.github.uziskull.restdbservice.model.exception.DeviceNotFoundException;
 import com.github.uziskull.restdbservice.model.exception.DuplicateDeviceException;
+import com.github.uziskull.restdbservice.model.exception.MissingDeviceFieldsException;
 import com.github.uziskull.restdbservice.repository.DeviceRepository;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -23,7 +25,11 @@ public class DeviceService {
 
     private DeviceRepository deviceRepository;
 
+    @Transactional
     public DeviceResponse addDevice(@NonNull DeviceRequest deviceRequest) {
+        if (deviceRequest.getName() == null || deviceRequest.getBrand() == null) {
+            throw new MissingDeviceFieldsException();
+        }
         DeviceDAO deviceDAO = new DeviceDAO();
         deviceDAO.setName(deviceRequest.getName());
         deviceDAO.setBrand(deviceRequest.getBrand());
@@ -45,8 +51,9 @@ public class DeviceService {
                 .map(DeviceResponse::fromDAO);
     }
 
+    @Transactional
     public DeviceResponse updateDevice(@NonNull UUID deviceId,
-                                                 @NonNull DeviceRequest deviceRequest) {
+                                       @NonNull DeviceRequest deviceRequest) {
         Optional<DeviceDAO> foundDevice = deviceRepository.findById(deviceId);
         if (foundDevice.isEmpty()) {
             throw new DeviceNotFoundException();
@@ -65,6 +72,7 @@ public class DeviceService {
         }
     }
 
+    @Transactional
     public void deleteDevice(@NonNull UUID deviceId) {
         try {
             deviceRepository.deleteById(deviceId);
