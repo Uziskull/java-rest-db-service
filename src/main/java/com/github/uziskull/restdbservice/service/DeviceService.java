@@ -25,7 +25,6 @@ public class DeviceService {
 
     private DeviceRepository deviceRepository;
 
-    @Transactional
     public DeviceResponse addDevice(@NonNull DeviceRequest deviceRequest) {
         if (deviceRequest.getName() == null || deviceRequest.getBrand() == null) {
             throw new MissingDeviceFieldsException();
@@ -51,7 +50,6 @@ public class DeviceService {
                 .map(DeviceResponse::fromDAO);
     }
 
-    @Transactional
     public DeviceResponse updateDevice(@NonNull UUID deviceId,
                                        @NonNull DeviceRequest deviceRequest) {
         Optional<DeviceDAO> foundDevice = deviceRepository.findById(deviceId);
@@ -72,7 +70,6 @@ public class DeviceService {
         }
     }
 
-    @Transactional
     public void deleteDevice(@NonNull UUID deviceId) {
         try {
             deviceRepository.deleteById(deviceId);

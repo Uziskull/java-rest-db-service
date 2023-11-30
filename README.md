@@ -1,7 +1,7 @@
 # java-rest-db-service
 Simple exposed REST service to connect to a DB.
 
-
+Once running, the generated API documentation can be seen at: **{host-url}/swagger-ui/index.html**
 
 ## Configuration
 To run this project:
